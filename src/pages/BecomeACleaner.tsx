@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CheckCircle, Sparkles, Clock, HeartHandshake, DollarSign } from "lucide-react";
+import { CheckCircle, Sparkles, Clock, HeartHandshake, DollarSign, Upload, FileText, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidEmail, isValidUSPhone } from "@/lib/validation";
+import { sendApplicationAcknowledgement } from "@/lib/applicantEmail";
 
 import PageMeta from "@/components/PageMeta";
 
@@ -29,6 +30,9 @@ const applicationSchema = z.object({
   last_name: z.string().trim().min(1, "Last name is required").max(60),
   email: z.string().trim().email("Please enter a valid email").max(255),
   phone: z.string().trim().min(7, "Please enter a valid phone").max(30),
+  address_street: z.string().trim().min(3, "Street address is required").max(200),
+  address_city: z.string().trim().min(2, "City is required").max(100),
+  address_state: z.string().trim().min(2, "State is required").max(60),
   availability: z.string().min(1, "Please select your availability"),
   experience: z.string().min(1, "Please select your experience level"),
   service_type: z.enum(SERVICE_OPTIONS, { errorMap: () => ({ message: "Please choose a service type" }) }),
@@ -36,13 +40,21 @@ const applicationSchema = z.object({
   authorized_to_work: z.enum(["yes", "no"], { errorMap: () => ({ message: "Please select an option" }) }),
   reference_1: z.string().trim().min(3, "Reference is required").max(255),
   reference_2: z.string().trim().min(3, "Reference is required").max(255),
-  reference_3: z.string().trim().min(3, "Reference is required").max(255),
   personality_bio: z
     .string()
     .trim()
     .min(1, "Please describe your personality")
     .refine((v) => countWords(v) <= MAX_BIO_WORDS, `Please keep this under ${MAX_BIO_WORDS} words`),
 });
+
+// Resume upload constraints
+const MAX_RESUME_BYTES = 5 * 1024 * 1024; // 5MB
+const ALLOWED_RESUME_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+const ALLOWED_RESUME_EXT = [".pdf", ".doc", ".docx"];
 
 const COOLDOWN_KEY = "cleaner_application_last_submit";
 const COOLDOWN_MS = 30_000;
@@ -53,6 +65,9 @@ const initialForm = {
   last_name: "",
   email: "",
   phone: "",
+  address_street: "",
+  address_city: "",
+  address_state: "",
   availability: "",
   experience: "",
   service_type: "" as (typeof SERVICE_OPTIONS)[number] | "",
@@ -60,7 +75,6 @@ const initialForm = {
   authorized_to_work: "" as "yes" | "no" | "",
   reference_1: "",
   reference_2: "",
-  reference_3: "",
   personality_bio: "",
 };
 
@@ -71,10 +85,39 @@ const BecomeACleaner = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [resume, setResume] = useState<File | null>(null);
 
   const update = (key: keyof typeof initialForm) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((p) => ({ ...p, [key]: e.target.value }));
+
+  const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) {
+      setResume(null);
+      return;
+    }
+    const nameLower = file.name.toLowerCase();
+    const extOk = ALLOWED_RESUME_EXT.some((ext) => nameLower.endsWith(ext));
+    const typeOk = ALLOWED_RESUME_TYPES.includes(file.type) || extOk;
+    if (!typeOk) {
+      setErrors((p) => ({ ...p, resume: "Please upload a PDF, DOC, or DOCX file." }));
+      setResume(null);
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_RESUME_BYTES) {
+      setErrors((p) => ({ ...p, resume: "Resume must be 5MB or smaller." }));
+      setResume(null);
+      e.target.value = "";
+      return;
+    }
+    setErrors((p) => {
+      const { resume, ...rest } = p;
+      return rest;
+    });
+    setResume(file);
+  };
 
   const bioWordCount = useMemo(() => countWords(form.personality_bio), [form.personality_bio]);
   const bioOverLimit = bioWordCount > MAX_BIO_WORDS;
@@ -115,7 +158,28 @@ const BecomeACleaner = () => {
       .filter(Boolean)
       .join(" ");
 
+    const fullAddress = [parsed.data.address_street, parsed.data.address_city, parsed.data.address_state]
+      .filter(Boolean)
+      .join(", ");
+
     try {
+      // Upload the resume to the private bucket first (optional).
+      let resumeUrl: string | null = null;
+      if (resume) {
+        const ext = resume.name.split(".").pop()?.toLowerCase() || "pdf";
+        const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const path = `applications/${safeName}`;
+        const { error: uploadError } = await supabase.storage
+          .from("cleaner-resumes")
+          .upload(path, resume, { contentType: resume.type || undefined, upsert: false });
+        if (uploadError) {
+          toast({ title: "Could not upload your resume.", description: "Please try again or submit without it.", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+        resumeUrl = path;
+      }
+
       const { error } = await supabase
         .from("cleaner_applications" as any)
         .insert([
@@ -124,6 +188,8 @@ const BecomeACleaner = () => {
             middle_name: parsed.data.middle_name || null,
             email: parsed.data.email,
             phone: parsed.data.phone,
+            address: fullAddress,
+            resume_url: resumeUrl,
             availability: parsed.data.availability,
             experience: parsed.data.experience,
             service_type: parsed.data.service_type,
@@ -131,7 +197,6 @@ const BecomeACleaner = () => {
             authorized_to_work: parsed.data.authorized_to_work === "yes",
             reference_1: parsed.data.reference_1,
             reference_2: parsed.data.reference_2,
-            reference_3: parsed.data.reference_3,
             personality_bio: parsed.data.personality_bio,
             message: parsed.data.personality_bio,
           },
@@ -143,11 +208,14 @@ const BecomeACleaner = () => {
       }
 
       // Admin notification is created automatically by a database trigger.
-
+      // Send the applicant an auto-acknowledgement (non-blocking).
+      sendApplicationAcknowledgement(parsed.data.email, parsed.data.first_name).catch((err) =>
+        console.error("[applicant-ack] failed:", err),
+      );
 
       localStorage.setItem(COOLDOWN_KEY, String(Date.now()));
       setSubmitted(true);
-      toast({ title: "Application submitted!", description: "Our team will review your profile and get back to you shortly." });
+      toast({ title: "Application submitted!", description: "Check your inbox for a confirmation from info@blueriverservices.co. Our team will review your profile and get back to you shortly." });
     } catch {
       toast({ title: "Something went wrong.", description: "Please try again.", variant: "destructive" });
     } finally {
@@ -262,7 +330,27 @@ const BecomeACleaner = () => {
                   </div>
                 </div>
 
-                {/* Availability + Experience */}
+                {/* Address */}
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="address_street">Street Address *</Label>
+                    <Input id="address_street" value={form.address_street} onChange={update("address_street")} placeholder="123 Main St, Apt 4" className="mt-1.5" />
+                    {errors.address_street && <p className="text-xs text-destructive mt-1">{errors.address_street}</p>}
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-5">
+                    <div>
+                      <Label htmlFor="address_city">City *</Label>
+                      <Input id="address_city" value={form.address_city} onChange={update("address_city")} placeholder="Seattle" className="mt-1.5" />
+                      {errors.address_city && <p className="text-xs text-destructive mt-1">{errors.address_city}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="address_state">State *</Label>
+                      <Input id="address_state" value={form.address_state} onChange={update("address_state")} placeholder="WA" className="mt-1.5" />
+                      {errors.address_state && <p className="text-xs text-destructive mt-1">{errors.address_state}</p>}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid sm:grid-cols-2 gap-5">
                   <div>
                     <Label htmlFor="availability">Availability *</Label>
@@ -385,15 +473,44 @@ const BecomeACleaner = () => {
                     />
                     {errors.reference_2 && <p className="text-xs text-destructive mt-1">{errors.reference_2}</p>}
                   </div>
-                  <div>
-                    <Input
-                      value={form.reference_3}
-                      onChange={update("reference_3")}
-                      placeholder="Reference 3 — Professional Reference (Name & Contact)"
-                    />
-                    {errors.reference_3 && <p className="text-xs text-destructive mt-1">{errors.reference_3}</p>}
-                  </div>
                 </div>
+
+                {/* Resume upload (optional) */}
+                <div>
+                  <Label htmlFor="resume">Resume <span className="text-muted-foreground font-normal">(optional — PDF, DOC, or DOCX, up to 5MB)</span></Label>
+                  {resume ? (
+                    <div className="mt-1.5 flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2.5">
+                      <span className="flex items-center gap-2 text-sm text-foreground truncate">
+                        <FileText className="w-4 h-4 text-primary shrink-0" />
+                        <span className="truncate">{resume.name}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setResume(null)}
+                        className="text-muted-foreground hover:text-destructive shrink-0"
+                        aria-label="Remove resume"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="resume"
+                      className="mt-1.5 flex items-center gap-2 rounded-lg border border-dashed border-border bg-background hover:bg-muted/50 px-3 py-2.5 cursor-pointer transition-colors text-sm text-muted-foreground"
+                    >
+                      <Upload className="w-4 h-4" /> Attach your resume
+                    </label>
+                  )}
+                  <input
+                    id="resume"
+                    type="file"
+                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={handleResumeChange}
+                    className="hidden"
+                  />
+                  {errors.resume && <p className="text-xs text-destructive mt-1">{errors.resume}</p>}
+                </div>
+
 
                 {/* Personality bio */}
                 <div>

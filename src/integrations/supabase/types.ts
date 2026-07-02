@@ -257,8 +257,53 @@ export type Database = {
         }
         Relationships: []
       }
+      cleaner_application_responses: {
+        Row: {
+          application_id: string
+          body: string | null
+          created_at: string
+          decision: string | null
+          id: string
+          recipient_email: string | null
+          sent_at: string
+          sent_by: string | null
+          subject: string | null
+        }
+        Insert: {
+          application_id: string
+          body?: string | null
+          created_at?: string
+          decision?: string | null
+          id?: string
+          recipient_email?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          subject?: string | null
+        }
+        Update: {
+          application_id?: string
+          body?: string | null
+          created_at?: string
+          decision?: string | null
+          id?: string
+          recipient_email?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaner_application_responses_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "cleaner_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cleaner_applications: {
         Row: {
+          address: string | null
           admin_notes: string | null
           authorized_to_work: boolean | null
           availability: string
@@ -275,11 +320,15 @@ export type Database = {
           reference_1: string | null
           reference_2: string | null
           reference_3: string | null
+          resume_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           service_type: string
           status: string
           updated_at: string
         }
         Insert: {
+          address?: string | null
           admin_notes?: string | null
           authorized_to_work?: boolean | null
           availability: string
@@ -296,11 +345,15 @@ export type Database = {
           reference_1?: string | null
           reference_2?: string | null
           reference_3?: string | null
+          resume_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           service_type: string
           status?: string
           updated_at?: string
         }
         Update: {
+          address?: string | null
           admin_notes?: string | null
           authorized_to_work?: boolean | null
           availability?: string
@@ -317,6 +370,9 @@ export type Database = {
           reference_1?: string | null
           reference_2?: string | null
           reference_3?: string | null
+          resume_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           service_type?: string
           status?: string
           updated_at?: string

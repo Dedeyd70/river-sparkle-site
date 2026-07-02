@@ -66,10 +66,15 @@ const Navbar = () => {
           </Button>
         </div>
 
-        {/* Mobile toggle */}
-        <button className="md:hidden text-foreground" onClick={() => setOpen(!open)}>
-          {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        {/* Mobile: compact "Become a Cleaner" (always visible) + toggle */}
+        <div className="flex items-center gap-2 md:hidden">
+          <Button variant="outline" size="sm" asChild className="text-xs px-2.5">
+            <Link to="/become-a-cleaner">Become a Cleaner</Link>
+          </Button>
+          <button className="text-foreground" onClick={() => setOpen(!open)} aria-label="Toggle menu">
+            {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}

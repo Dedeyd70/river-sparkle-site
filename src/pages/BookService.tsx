@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServices } from "@/hooks/useServices";
 import { format, isBefore, startOfDay, getDay } from "date-fns";
 import { isValidEmail, isValidUSPhone } from "@/lib/validation";
+import { ADMIN_BASE } from "@/lib/permissions";
 
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useServiceAreas } from "@/hooks/useServiceAreas";
@@ -451,7 +452,7 @@ const BookService = () => {
           body: {
             type: "admin_new_submission",
             to: "info@blueriverservices.co",
-            data: { ...bookingData, kind: "Booking", dashboardUrl: `${window.location.origin}/admin/bookings` },
+            data: { ...bookingData, kind: "Booking", dashboardUrl: `${window.location.origin}${ADMIN_BASE}/bookings` },
           },
         }),
       ]).then((results) => {

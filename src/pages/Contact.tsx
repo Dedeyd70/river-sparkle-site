@@ -12,6 +12,7 @@ import { useServiceAreas } from "@/hooks/useServiceAreas";
 import { useQuery } from "@tanstack/react-query";
 import { isValidEmail, isValidUSPhone } from "@/lib/validation";
 import { useNavigate } from "react-router-dom";
+import { ADMIN_BASE } from "@/lib/permissions";
 import PageMeta from "@/components/PageMeta";
 
 const Contact = () => {
@@ -109,7 +110,7 @@ const Contact = () => {
               phone: form.phone?.trim(),
               service: form.service,
               message: form.message?.trim(),
-              dashboardUrl: `${window.location.origin}/admin/messages`,
+              dashboardUrl: `${window.location.origin}${ADMIN_BASE}/messages`,
             },
           },
         }),

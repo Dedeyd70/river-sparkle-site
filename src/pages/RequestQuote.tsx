@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServices } from "@/hooks/useServices";
 import imageCompression from "browser-image-compression";
 import { isValidEmail, isValidUSPhone } from "@/lib/validation";
+import { ADMIN_BASE } from "@/lib/permissions";
 import PageMeta from "@/components/PageMeta";
 import DynamicField from "@/components/DynamicField";
 import { useServiceAreas } from "@/hooks/useServiceAreas";
@@ -270,7 +271,7 @@ const RequestQuote = () => {
           body: {
             type: "admin_new_submission",
             to: "info@blueriverservices.co",
-            data: { ...quoteData, kind: "Quote", dashboardUrl: `${window.location.origin}/admin/quotes` },
+            data: { ...quoteData, kind: "Quote", dashboardUrl: `${window.location.origin}${ADMIN_BASE}/quotes` },
           },
         }),
       ]).then((results) => {

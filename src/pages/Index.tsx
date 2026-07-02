@@ -184,10 +184,13 @@ const IndexPage = () => {
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button variant="hero" size="xl" asChild>
-                  <Link to="/quote">Get a Free Quote</Link>
+                  <Link to="/quote">Request a Quote</Link>
                 </Button>
                 <Button variant="hero-outline" size="xl" asChild>
                   <Link to="/book">Book Now</Link>
+                </Button>
+                <Button variant="hero-outline" size="xl" asChild>
+                  <Link to="/become-a-cleaner">Become a Cleaner</Link>
                 </Button>
               </div>
             </motion.div>
@@ -521,7 +524,7 @@ const IndexPage = () => {
                 className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
                 asChild
               >
-                <Link to="/quote">Get a Free Quote</Link>
+                <Link to="/quote">Request a Quote</Link>
               </Button>
               <Button variant="hero-outline" size="xl" asChild>
                 <Link to="/book">Book Now</Link>

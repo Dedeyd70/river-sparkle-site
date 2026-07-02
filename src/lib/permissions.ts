@@ -1,6 +1,10 @@
 // Role-based + permission-aware navigation configuration
 // admin = Super Admin, manager = Manager, staff = Staff
 
+/** Base path for the admin area. Use this everywhere (including email links)
+ *  so notification emails route to the real admin URL instead of a broken /admin/*. */
+export const ADMIN_BASE = "/onpass-useradmin-blueriveracess052026";
+
 export type AppRole = "admin" | "manager" | "staff" | "user";
 export type PermissionsMap = Record<string, boolean>;
 
