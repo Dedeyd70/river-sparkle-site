@@ -27,17 +27,6 @@ import { recomputeFromLineItems, LineItem } from "@/lib/pricingEngine";
 
 import { useAdminUserNames } from "@/hooks/useAdminUserNames";
 
-const RESCHEDULE_TIME_SLOTS: string[] = (() => {
-  const out: string[] = [];
-  for (let m = 8 * 60; m <= 18 * 60; m += 30) {
-    const h = Math.floor(m / 60);
-    const mm = m % 60;
-    const ampm = h >= 12 ? "PM" : "AM";
-    const h12 = h % 12 || 12;
-    out.push(`${h12}:${mm.toString().padStart(2, "0")} ${ampm}`);
-  }
-  return out;
-})();
 
 const statusColors: Record<string, string> = {
   pending: "bg-amber-100 text-amber-800",
