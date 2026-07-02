@@ -453,15 +453,6 @@ const BookingsAdmin = () => {
         return;
       }
       // Time-range overlap check (excludes the booking being rescheduled).
-      const { data: overlaps } = await (supabase as any).rpc("check_slot_overlap", {
-        p_date: rescheduleDate,
-        p_time_slot: rescheduleSlot,
-        p_exclude_booking: rescheduleTarget.id,
-      });
-      if (overlaps === true) {
-        toast({ title: "Time slot overlaps an existing booking. Please pick a different time.", variant: "destructive" });
-        return;
-      }
       const { data, error } = await supabase
         .from("bookings")
         .update({ booking_date: rescheduleDate, time_slot: rescheduleSlot } as any)
