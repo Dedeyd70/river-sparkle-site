@@ -976,15 +976,13 @@ const BookingsAdmin = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {RESCHEDULE_TIME_SLOTS.map((s) => {
-                    const cfg = configFromSettings(siteSettings);
                     const isSame = rescheduleTarget?.booking_date === rescheduleDate && rescheduleTarget?.time_slot === s;
                     const isBooked = !isSame && rescheduleBookedSlots?.includes(s);
-                    const isBlocked = !isSame && !isBooked && isSlotBlocked(s, rescheduleBookedSlots, cfg);
-                    const disabled = !!(isBooked || isBlocked);
+                    const disabled = !!isBooked;
                     return (
                       <SelectItem key={s} value={s} disabled={disabled}>
                         <span className={disabled ? "line-through text-muted-foreground" : ""}>
-                          {s}{isBooked ? " — Booked" : isBlocked ? " — Buffer" : ""}
+                          {s}{isBooked ? " — Booked" : ""}
                         </span>
                       </SelectItem>
                     );
@@ -992,7 +990,7 @@ const BookingsAdmin = () => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                30-minute intervals from 8:00 AM to 6:00 PM. Slots in the {configFromSettings(siteSettings).bufferMinutes}-min buffer of an existing booking are disabled.
+                30-minute intervals from 8:00 AM to 6:00 PM. A time is unavailable only if it is already booked for the selected date.
               </p>
             </div>
           </div>
