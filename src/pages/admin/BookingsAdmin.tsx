@@ -445,12 +445,39 @@ const BookingsAdmin = () => {
         .maybeSingle();
       if (error) throw error;
       if (!data) throw new Error("Update blocked by permissions or RLS");
+
+      const oldDate = rescheduleTarget.booking_date;
+      const oldSlot = rescheduleTarget.time_slot;
+      const customerEmail = rescheduleTarget.email;
+      const reason = rescheduleReason.trim();
+      const willNotify = rescheduleNotify && !!customerEmail;
+
       await logBookingActivity(rescheduleTarget.id, "rescheduled", {
-        details: `From ${rescheduleTarget.booking_date} ${rescheduleTarget.time_slot} → ${rescheduleDate} ${rescheduleSlot}`,
+        details: `From ${oldDate} ${oldSlot} → ${rescheduleDate} ${rescheduleSlot}${willNotify ? " (customer notified)" : ""}`,
       });
+
+      if (willNotify) {
+        supabase.functions.invoke("send-transactional-email", {
+          body: {
+            type: "booking_rescheduled",
+            to: customerEmail,
+            data: {
+              name: rescheduleTarget.name,
+              service: rescheduleTarget.service_type || "your booking",
+              oldDate: oldDate ? format(new Date(oldDate), "MMMM d, yyyy") : null,
+              oldTimeSlot: oldSlot,
+              newDate: rescheduleDate ? format(new Date(rescheduleDate), "MMMM d, yyyy") : null,
+              newTimeSlot: rescheduleSlot,
+              address: rescheduleTarget.address,
+              reason: reason || null,
+            },
+          },
+        }).catch((err) => console.error("Reschedule email failed:", err));
+      }
+
       qc.invalidateQueries({ queryKey: ["admin-bookings"] });
       qc.invalidateQueries({ queryKey: ["admin-booking-activity"] });
-      toast({ title: "Booking rescheduled." });
+      toast({ title: willNotify ? "Booking rescheduled. Customer notified." : "Booking rescheduled." });
       setRescheduleTarget(null);
     } catch (e: any) {
       if (e?.code === "23505") {
