@@ -27,17 +27,6 @@ import { recomputeFromLineItems, LineItem } from "@/lib/pricingEngine";
 
 import { useAdminUserNames } from "@/hooks/useAdminUserNames";
 
-const RESCHEDULE_TIME_SLOTS: string[] = (() => {
-  const out: string[] = [];
-  for (let m = 8 * 60; m <= 18 * 60; m += 30) {
-    const h = Math.floor(m / 60);
-    const mm = m % 60;
-    const ampm = h >= 12 ? "PM" : "AM";
-    const h12 = h % 12 || 12;
-    out.push(`${h12}:${mm.toString().padStart(2, "0")} ${ampm}`);
-  }
-  return out;
-})();
 
 const statusColors: Record<string, string> = {
   pending: "bg-amber-100 text-amber-800",
@@ -96,16 +85,6 @@ const BookingsAdmin = () => {
   const [modifyItems, setModifyItems] = useState<LineItem[]>([]);
   const { data: siteSettings } = useSiteSettings();
 
-  // Booked slots for the date currently selected in the Reschedule modal — used
-  // to disable conflicting time options.
-  const { data: rescheduleBookedSlots } = useQuery({
-    queryKey: ["reschedule-booked-slots", rescheduleDate],
-    enabled: !!rescheduleDate,
-    queryFn: async () => {
-      const { data } = await (supabase as any).rpc("get_booked_slots", { p_date: rescheduleDate });
-      return (data ?? []).map((r: any) => r.time_slot) as string[];
-    },
-  });
 
   useEffect(() => {
     if (focusId) setExpandedId(focusId);
@@ -969,28 +948,15 @@ const BookingsAdmin = () => {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">New time slot</label>
-              <Select value={rescheduleSlot} onValueChange={setRescheduleSlot}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {RESCHEDULE_TIME_SLOTS.map((s) => {
-                    const isSame = rescheduleTarget?.booking_date === rescheduleDate && rescheduleTarget?.time_slot === s;
-                    const isBooked = !isSame && rescheduleBookedSlots?.includes(s);
-                    const disabled = !!isBooked;
-                    return (
-                      <SelectItem key={s} value={s} disabled={disabled}>
-                        <span className={disabled ? "line-through text-muted-foreground" : ""}>
-                          {s}{isBooked ? " — Booked" : ""}
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium">New time</label>
+              <Input
+                type="text"
+                placeholder="e.g. 9:00 AM"
+                value={rescheduleSlot}
+                onChange={(e) => setRescheduleSlot(e.target.value)}
+              />
               <p className="text-xs text-muted-foreground">
-                30-minute intervals from 8:00 AM to 6:00 PM. A time is unavailable only if it is already booked for the selected date.
+                Enter any time. A time is unavailable only if it is already booked for the selected date.
               </p>
             </div>
           </div>
