@@ -18,7 +18,7 @@ import { useFocusHighlight } from "@/hooks/useFocusHighlight";
 import { ChevronDown, ChevronUp, Clock, FileText, Send, Receipt as ReceiptIcon, CalendarClock, Pencil, Plus, Trash2 } from "lucide-react";
 import PermissionGate from "@/components/PermissionGate";
 import { generateInvoicePdf, generateInvoicePdfBase64 } from "@/lib/invoicePdf";
-import { configFromSettings, isSlotBlocked } from "@/lib/availability";
+
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { friendlyRpcError } from "@/lib/friendlyRpcError";
 import Paginator, { PAGE_SIZE, usePagedSlice } from "@/components/admin/Paginator";
@@ -453,15 +453,6 @@ const BookingsAdmin = () => {
         return;
       }
       // Time-range overlap check (excludes the booking being rescheduled).
-      const { data: overlaps } = await (supabase as any).rpc("check_slot_overlap", {
-        p_date: rescheduleDate,
-        p_time_slot: rescheduleSlot,
-        p_exclude_booking: rescheduleTarget.id,
-      });
-      if (overlaps === true) {
-        toast({ title: "Time slot overlaps an existing booking. Please pick a different time.", variant: "destructive" });
-        return;
-      }
       const { data, error } = await supabase
         .from("bookings")
         .update({ booking_date: rescheduleDate, time_slot: rescheduleSlot } as any)
@@ -985,15 +976,13 @@ const BookingsAdmin = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {RESCHEDULE_TIME_SLOTS.map((s) => {
-                    const cfg = configFromSettings(siteSettings);
                     const isSame = rescheduleTarget?.booking_date === rescheduleDate && rescheduleTarget?.time_slot === s;
                     const isBooked = !isSame && rescheduleBookedSlots?.includes(s);
-                    const isBlocked = !isSame && !isBooked && isSlotBlocked(s, rescheduleBookedSlots, cfg);
-                    const disabled = !!(isBooked || isBlocked);
+                    const disabled = !!isBooked;
                     return (
                       <SelectItem key={s} value={s} disabled={disabled}>
                         <span className={disabled ? "line-through text-muted-foreground" : ""}>
-                          {s}{isBooked ? " — Booked" : isBlocked ? " — Buffer" : ""}
+                          {s}{isBooked ? " — Booked" : ""}
                         </span>
                       </SelectItem>
                     );
@@ -1001,7 +990,7 @@ const BookingsAdmin = () => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                30-minute intervals from 8:00 AM to 6:00 PM. Slots in the {configFromSettings(siteSettings).bufferMinutes}-min buffer of an existing booking are disabled.
+                30-minute intervals from 8:00 AM to 6:00 PM. A time is unavailable only if it is already booked for the selected date.
               </p>
             </div>
           </div>
