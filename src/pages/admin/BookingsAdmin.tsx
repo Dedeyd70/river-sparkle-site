@@ -414,6 +414,8 @@ const BookingsAdmin = () => {
     setRescheduleTarget(b);
     setRescheduleDate(b.booking_date ?? "");
     setRescheduleSlot(b.time_slot ?? "");
+    setRescheduleNotify(true);
+    setRescheduleReason("");
   };
 
   const handleRescheduleConfirm = async () => {
