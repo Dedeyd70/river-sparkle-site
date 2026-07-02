@@ -991,6 +991,33 @@ const BookingsAdmin = () => {
                 Enter any time. A time is unavailable only if it is already booked for the selected date.
               </p>
             </div>
+            <div className="space-y-3 rounded-md border border-border p-3">
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="reschedule-notify"
+                  checked={rescheduleNotify}
+                  onCheckedChange={(v) => setRescheduleNotify(v === true)}
+                  disabled={!rescheduleTarget?.email}
+                  className="mt-0.5"
+                />
+                <label htmlFor="reschedule-notify" className="text-sm leading-snug cursor-pointer">
+                  Notify customer by email
+                  <span className="block text-xs text-muted-foreground">
+                    {rescheduleTarget?.email
+                      ? `Sends the old → new time to ${rescheduleTarget.email}. Uncheck for silent corrections.`
+                      : "No email on file for this booking."}
+                  </span>
+                </label>
+              </div>
+              {rescheduleNotify && rescheduleTarget?.email && (
+                <Textarea
+                  rows={2}
+                  placeholder="Optional message to include (e.g. Rescheduled at your request)"
+                  value={rescheduleReason}
+                  onChange={(e) => setRescheduleReason(e.target.value)}
+                />
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRescheduleTarget(null)}>
