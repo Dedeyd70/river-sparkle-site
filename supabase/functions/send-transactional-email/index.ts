@@ -129,6 +129,22 @@ function quoteTemplate(d: Record<string, unknown>) {
   return { subject: "Your BlueRiver quote request", html: wrap("Quote request received", inner) };
 }
 
+function bookingRescheduledTemplate(d: Record<string, unknown>) {
+  const inner = `
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.5;">Hi ${esc(d.name) || "there"}, your cleaning appointment has been <strong>rescheduled</strong>. Here are the updated details.</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+      ${d.oldDate || d.oldTimeSlot ? `<tr><td style="padding:6px 0;color:#64748b;font-size:14px;">Was</td><td style="padding:6px 0;color:#0f172a;font-size:14px;">${esc([d.oldDate, d.oldTimeSlot].filter(Boolean).join(" — "))}</td></tr>` : ""}
+      ${d.newDate || d.newTimeSlot ? `<tr><td style="padding:6px 0;color:#64748b;font-size:14px;">Now</td><td style="padding:6px 0;color:#0f172a;font-size:14px;font-weight:600;">${esc([d.newDate, d.newTimeSlot].filter(Boolean).join(" — "))}</td></tr>` : ""}
+      ${detailRow("Service", d.service)}
+      ${detailRow("Address", d.address)}
+    </table>
+    ${d.reason ? `<p style="margin:16px 0 0;font-size:14px;line-height:1.5;color:#0f172a;"><strong>Note:</strong> ${esc(d.reason)}</p>` : ""}
+    <p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#dc2626;">Please note the time above is for scheduling purposes; our team may coordinate the exact arrival window with you.</p>
+    <p style="margin:12px 0 0;font-size:14px;color:#64748b;">Questions or need another change? Just reply to this email.</p>`;
+  return { subject: `Your BlueRiver booking has been rescheduled${d.newDate ? ` — ${esc(d.newDate)}` : ""}`, html: wrap("Booking rescheduled", inner) };
+}
+
+
 function adminAlertTemplate(d: Record<string, unknown>) {
   const kind = String(d.kind || "Submission");
   const title = `New ${kind} Request Received - Check Dashboard`;
