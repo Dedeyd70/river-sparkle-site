@@ -200,6 +200,10 @@ Deno.serve(async (req) => {
       const t = bookingConfirmedTemplate(data);
       subject ||= t.subject;
       html ||= t.html;
+    } else if (body.type === "booking_rescheduled") {
+      const t = bookingRescheduledTemplate(data);
+      subject ||= t.subject;
+      html ||= t.html;
     } else if (body.type === "quote_received") {
       const t = quoteTemplate(data);
       subject ||= t.subject;
