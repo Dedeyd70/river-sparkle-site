@@ -19,6 +19,7 @@ type Payload = {
   type:
     | "booking_received"      // user — "we got your request"
     | "booking_confirmed"     // user — "your booking is confirmed"
+    | "booking_rescheduled"   // user — "your booking has been moved"
     | "booking_confirmation"  // legacy alias of booking_received
     | "quote_received"        // user — "we got your quote"
     | "admin_new_submission"  // admin alert to ADMIN_INBOX
