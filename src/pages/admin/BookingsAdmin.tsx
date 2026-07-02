@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -74,6 +75,8 @@ const BookingsAdmin = () => {
   const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleSlot, setRescheduleSlot] = useState("");
+  const [rescheduleNotify, setRescheduleNotify] = useState(true);
+  const [rescheduleReason, setRescheduleReason] = useState("");
   const [expandedActivity, setExpandedActivity] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activePage, setActivePage] = useState(1);
@@ -411,6 +414,8 @@ const BookingsAdmin = () => {
     setRescheduleTarget(b);
     setRescheduleDate(b.booking_date ?? "");
     setRescheduleSlot(b.time_slot ?? "");
+    setRescheduleNotify(true);
+    setRescheduleReason("");
   };
 
   const handleRescheduleConfirm = async () => {
@@ -440,12 +445,39 @@ const BookingsAdmin = () => {
         .maybeSingle();
       if (error) throw error;
       if (!data) throw new Error("Update blocked by permissions or RLS");
+
+      const oldDate = rescheduleTarget.booking_date;
+      const oldSlot = rescheduleTarget.time_slot;
+      const customerEmail = rescheduleTarget.email;
+      const reason = rescheduleReason.trim();
+      const willNotify = rescheduleNotify && !!customerEmail;
+
       await logBookingActivity(rescheduleTarget.id, "rescheduled", {
-        details: `From ${rescheduleTarget.booking_date} ${rescheduleTarget.time_slot} → ${rescheduleDate} ${rescheduleSlot}`,
+        details: `From ${oldDate} ${oldSlot} → ${rescheduleDate} ${rescheduleSlot}${willNotify ? " (customer notified)" : ""}`,
       });
+
+      if (willNotify) {
+        supabase.functions.invoke("send-transactional-email", {
+          body: {
+            type: "booking_rescheduled",
+            to: customerEmail,
+            data: {
+              name: rescheduleTarget.name,
+              service: rescheduleTarget.service_type || "your booking",
+              oldDate: oldDate ? format(new Date(oldDate), "MMMM d, yyyy") : null,
+              oldTimeSlot: oldSlot,
+              newDate: rescheduleDate ? format(new Date(rescheduleDate), "MMMM d, yyyy") : null,
+              newTimeSlot: rescheduleSlot,
+              address: rescheduleTarget.address,
+              reason: reason || null,
+            },
+          },
+        }).catch((err) => console.error("Reschedule email failed:", err));
+      }
+
       qc.invalidateQueries({ queryKey: ["admin-bookings"] });
       qc.invalidateQueries({ queryKey: ["admin-booking-activity"] });
-      toast({ title: "Booking rescheduled." });
+      toast({ title: willNotify ? "Booking rescheduled. Customer notified." : "Booking rescheduled." });
       setRescheduleTarget(null);
     } catch (e: any) {
       if (e?.code === "23505") {
@@ -958,6 +990,33 @@ const BookingsAdmin = () => {
               <p className="text-xs text-muted-foreground">
                 Enter any time. A time is unavailable only if it is already booked for the selected date.
               </p>
+            </div>
+            <div className="space-y-3 rounded-md border border-border p-3">
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="reschedule-notify"
+                  checked={rescheduleNotify}
+                  onCheckedChange={(v) => setRescheduleNotify(v === true)}
+                  disabled={!rescheduleTarget?.email}
+                  className="mt-0.5"
+                />
+                <label htmlFor="reschedule-notify" className="text-sm leading-snug cursor-pointer">
+                  Notify customer by email
+                  <span className="block text-xs text-muted-foreground">
+                    {rescheduleTarget?.email
+                      ? `Sends the old → new time to ${rescheduleTarget.email}. Uncheck for silent corrections.`
+                      : "No email on file for this booking."}
+                  </span>
+                </label>
+              </div>
+              {rescheduleNotify && rescheduleTarget?.email && (
+                <Textarea
+                  rows={2}
+                  placeholder="Optional message to include (e.g. Rescheduled at your request)"
+                  value={rescheduleReason}
+                  onChange={(e) => setRescheduleReason(e.target.value)}
+                />
+              )}
             </div>
           </div>
           <DialogFooter>
