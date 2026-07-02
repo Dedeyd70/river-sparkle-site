@@ -18,7 +18,7 @@ import { useFocusHighlight } from "@/hooks/useFocusHighlight";
 import { ChevronDown, ChevronUp, Clock, FileText, Send, Receipt as ReceiptIcon, CalendarClock, Pencil, Plus, Trash2 } from "lucide-react";
 import PermissionGate from "@/components/PermissionGate";
 import { generateInvoicePdf, generateInvoicePdfBase64 } from "@/lib/invoicePdf";
-import { configFromSettings, isSlotBlocked } from "@/lib/availability";
+
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { friendlyRpcError } from "@/lib/friendlyRpcError";
 import Paginator, { PAGE_SIZE, usePagedSlice } from "@/components/admin/Paginator";
