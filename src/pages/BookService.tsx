@@ -230,15 +230,12 @@ const BookService = () => {
     for (let m = startMin; m + slotDuration <= endMin; m += slotDuration) {
       const h = Math.floor(m / 60);
       const mm = m % 60;
-      const endSlotM = m + slotDuration;
-      const eh = Math.floor(endSlotM / 60);
-      const em = endSlotM % 60;
       const fmt = (hr: number, mi: number) => {
         const ampm = hr >= 12 ? "PM" : "AM";
         const h12 = hr % 12 || 12;
         return `${h12}:${mi.toString().padStart(2, "0")} ${ampm}`;
       };
-      slots.push(`${fmt(h, mm)} - ${fmt(eh, em)}`);
+      slots.push(fmt(h, mm));
     }
     return slots;
   };
