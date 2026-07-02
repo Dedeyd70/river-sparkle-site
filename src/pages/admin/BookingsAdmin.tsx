@@ -75,6 +75,8 @@ const BookingsAdmin = () => {
   const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleSlot, setRescheduleSlot] = useState("");
+  const [rescheduleNotify, setRescheduleNotify] = useState(true);
+  const [rescheduleReason, setRescheduleReason] = useState("");
   const [expandedActivity, setExpandedActivity] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activePage, setActivePage] = useState(1);
