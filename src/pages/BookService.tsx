@@ -20,7 +20,7 @@ import { useServiceAreas } from "@/hooks/useServiceAreas";
 import PageMeta from "@/components/PageMeta";
 import DynamicField from "@/components/DynamicField";
 import { computeQuote } from "@/lib/pricingEngine";
-import { configFromSettings, isSlotBlocked } from "@/lib/availability";
+
 
 const COMMERCIAL_PROPERTY_TYPES = ["Office", "Schools", "Medical", "Retail", "Other"];
 const RESIDENTIAL_PROPERTY_TYPES = ["House", "Apartment", "Townhome", "Other"];
