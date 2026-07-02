@@ -344,17 +344,7 @@ const BookService = () => {
         toast({ title: "This time slot was just booked. Please select another.", variant: "destructive" });
         return;
       }
-      // Range-overlap check (e.g. 7-11 AM vs 9:00) via SECURITY DEFINER RPC.
-      const { data: overlaps } = await (supabase as any).rpc("check_slot_overlap", {
-        p_date: dateStr,
-        p_time_slot: selectedSlot,
-        p_exclude_booking: null,
-      });
-      if (overlaps === true) {
-        setLoading(false);
-        toast({ title: "Time slot overlaps an existing booking. Please pick a different time.", variant: "destructive" });
-        return;
-      }
+
     } catch { /* proceed if check fails */ }
     // Manual confirmation: every public booking starts as Pending. Auto-approve removed.
     const initialStatus = "pending";
