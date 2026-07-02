@@ -96,16 +96,6 @@ const BookingsAdmin = () => {
   const [modifyItems, setModifyItems] = useState<LineItem[]>([]);
   const { data: siteSettings } = useSiteSettings();
 
-  // Booked slots for the date currently selected in the Reschedule modal — used
-  // to disable conflicting time options.
-  const { data: rescheduleBookedSlots } = useQuery({
-    queryKey: ["reschedule-booked-slots", rescheduleDate],
-    enabled: !!rescheduleDate,
-    queryFn: async () => {
-      const { data } = await (supabase as any).rpc("get_booked_slots", { p_date: rescheduleDate });
-      return (data ?? []).map((r: any) => r.time_slot) as string[];
-    },
-  });
 
   useEffect(() => {
     if (focusId) setExpandedId(focusId);
