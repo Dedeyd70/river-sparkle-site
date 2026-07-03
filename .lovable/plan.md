@@ -1,58 +1,56 @@
-# Plan: Reschedule notification email
+# Admin Check-Up Guide: Booking & Scheduling
 
-Today, confirming a booking emails the customer, but **rescheduling silently changes the date/time** with no notice. This adds a market-standard reschedule email so everyone stays on the same page when a confirmed booking moves.
+A simple, click-through checklist so you can confirm everything works — no technical knowledge needed. Do this on the **live website** (not the preview). Have your own email handy so you can play the "customer" and see what they receive.
 
-## Behavior
+---
 
-- The Reschedule dialog gains two fields:
-  - A **"Notify customer by email"** checkbox, **pre-checked** (admin can uncheck for silent corrections).
-  - An **optional reason/message** text field (e.g. "Rescheduled at your request").
-- On confirm, the booking is updated exactly as it is now. Then, if the checkbox is on and the customer has an email, a reschedule email is sent.
-- The email clearly shows the change: **Was: `<old date, old time>` → Now: `<new date, new time>`**, plus the optional reason and service/address.
-- The customer's status stays as-is (a reschedule is a change notice, not a re-confirmation).
-- Activity log records whether a notice was sent (appended to the existing "rescheduled" log entry).
+## Part 1 — Book like a customer
 
-## Email content
+1. Open the website and go to **Book Service**.
+2. Look at the list of times. Each one should be a **single time** like "9:00 AM" — **not** a range like "9:00 AM – 11:00 AM".
+3. Check for the **red note** telling the customer the time may change and is just for scheduling. It should be easy to see.
+4. Fill in the form using **your own email**, pick a date and a time, and submit.
+5. You should see a **thank-you / success message**.
+6. Check your email inbox — you should get a **"we received your booking"** message.
 
-Subject: `Your BlueRiver booking has been rescheduled`
+## Part 2 — See it as the admin
 
-Body:
-- Friendly line: "Hi `<name>`, your cleaning appointment has been rescheduled."
-- A change table:
+7. Log in to the **Admin** area and open **Bookings**.
+8. Your test booking should appear under **Active**, marked **pending**, showing the single time you chose.
+9. Check the **bell icon** (top of the admin) — there should be a new alert for it. You should also get an **admin email** about the new booking.
 
-```text
-Was:  July 5, 2026 — 9:00 AM
-Now:  July 8, 2026 — 2:00 PM
-Service:  Deep Clean
-Address:  123 Main St
-```
+## Part 3 — Confirm the booking
 
-- Optional reason paragraph (only if admin typed one).
-- Reuses the existing red-style note that final timing may be coordinated, matching the booking form's disclaimer tone.
-- Closes with "Reply to this email with any questions."
+10. Open the booking and **Confirm** it. It should switch to **confirmed**.
+11. Check your inbox — the customer (you) should get a **"booking confirmed"** email with the right date and time.
 
-## Technical details
+## Part 4 — Reschedule it
 
-**`supabase/functions/send-transactional-email/index.ts`**
-- Add a new payload type `booking_rescheduled`.
-- Add `bookingRescheduledTemplate(d)` that renders the was/now rows via the existing `detailRow` helper (new keys: `oldDate`, `oldTimeSlot`, `newDate`, `newTimeSlot`, `reason`).
-- Wire it into the type switch like the other booking templates.
-- Requires redeploying the `send-transactional-email` function.
+12. On the confirmed booking, click **Reschedule**.
+13. The time field should let you **type any time** (e.g. "2:15 PM") — you're **not** forced to pick from a fixed list, and there are no blocked "buffer" times around other bookings.
+14. There should be a **"Notify customer by email"** checkbox that is **already ticked**, plus an optional box to type a short message/reason.
+15. Change the date/time, leave the box **ticked**, and save.
+16. Check your inbox — you should get a **"rescheduled"** email that clearly shows **the old time and the new time**, plus your message if you typed one.
 
-**`src/pages/admin/BookingsAdmin.tsx`**
-- Add state: `rescheduleNotify` (default `true`) and `rescheduleReason` (default `""`).
-- Reset both in `openReschedule`.
-- In `handleRescheduleConfirm`, after a successful update: capture the old date/time from `rescheduleTarget` before it's cleared, and if `rescheduleNotify && rescheduleTarget.email`, fire `supabase.functions.invoke("send-transactional-email", { type: "booking_rescheduled", to, data })` fire-and-forget (same pattern as the confirmation email).
-- Include the "notice sent" flag in the `logBookingActivity("rescheduled", ...)` details string.
-- Add the checkbox + optional reason `Textarea` to the reschedule Dialog, above the footer.
-- Toast message reflects whether an email was sent ("Booking rescheduled. Customer notified." vs "Booking rescheduled.").
+## Part 5 — Reschedule quietly (optional)
 
-## Out of scope
-- No database/schema changes.
-- No changes to the public booking form or the confirm/cancel flows.
-- Time-slot conflict logic and the no-backdating guard stay exactly as they are.
+17. Reschedule the same booking again, but this time **untick** the notify box and save.
+18. The booking should update, but **no email** should arrive. (Use this for small corrections you don't want to bother the customer with.)
 
-## Verification
-- Reschedule a confirmed booking with the box checked → customer receives an email showing old → now and the reason; activity log notes the notice.
-- Reschedule with the box unchecked → date/time updates, no email sent.
-- Reschedule a booking with no email on file → updates cleanly, no send attempted.
+## Part 6 — Cleaner applications
+
+19. Go to **Become a Cleaner** on the website and submit a test application using your email.
+20. You (the applicant) should get a **"we received your application"** email.
+21. As admin, you should get an **email alert** and a **bell notification** about the new application.
+22. In Admin → **Cleaner Applications**, open the new one and try moving it through the stages (New → Reviewing → Shortlisted → Interview → Hired/Rejected). Each change should save with **no error message**.
+
+---
+
+## Quick "all good" summary
+- Times are single times, no confusing ranges, and the red reminder note is showing.
+- New bookings, confirmations, and reschedules all send the right emails.
+- Reschedule lets you type any time and shows the customer the old → new change.
+- Cleaner applications notify both the applicant and you, and status changes save cleanly.
+
+## If anything looks wrong
+Just tell me the **step number** and what you saw (a screenshot helps). I'll look into it and fix it.
